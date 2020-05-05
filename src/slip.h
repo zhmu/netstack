@@ -35,4 +35,34 @@ namespace netstack::slip {
 		});
 		transmit(constants::END);
 	}
+
+	template<typename Iterator, typename OnByteFn, typename OnEndFn> void Decode(Iterator& it, Iterator end, OnByteFn&& onByte, OnEndFn&& onEnd)
+	{
+		while(it != end) {
+			auto byte = *it;
+			switch (byte) {
+				case constants::END:
+					onEnd();
+					++it;
+					continue;
+				case constants::ESC: {
+					if (auto nextIt{it}; ++nextIt == end)
+						return;
+					++it;
+					byte = *it;
+					switch(byte) {
+						case constants::ESC_END:
+							byte = constants::END;
+							break;
+						case constants::ESC_ESC:
+							byte = constants::ESC;
+							break;
+					}
+					break;
+				}
+			}
+			onByte(byte);
+			++it;
+		}
+	}
 }

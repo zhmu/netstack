@@ -187,5 +187,82 @@ TEST(SLIP, Transmit_All_Bytes_From_Multiple_Buffers)
 	capture.Verify(expected);
 }
 
+TEST(SLIP, Decode_Empty_Range)
+{
+	constexpr nonstd::span buffer{static_cast<std::byte*>(nullptr), 0_sz};
+	auto it = buffer.begin();
+	slip::Decode(it, buffer.end(), [](const auto v) {
+		ADD_FAILURE() << "called";
+	}, []() {
+		ADD_FAILURE() << "called";
+	});
+	EXPECT_EQ(buffer.end(), it);
+}
+
+TEST(SLIP, Decode_NonSpecial_Bytes)
+{
+	const auto data = ranges::views::ints(0, 256)
+					| ranges::views::transform(AsByte)
+					| ranges::views::filter(std::not_fn(IsSpecialByte))
+					| ranges::to<std::vector>();
+	auto it = data.begin();
+	std::vector<std::byte> decodedBytes;
+	slip::Decode(it, data.end(), [&](const auto v) {
+		decodedBytes.push_back(v);
+	}, [&]() {
+		ADD_FAILURE() << "called";
+	});
+	EXPECT_EQ(data.end(), it);
+	ASSERT_EQ(decodedBytes.size(), data.size());
+	EXPECT_TRUE(ranges::equal(decodedBytes, data));
+}
+
+TEST(SLIP, Decode_End_Character)
+{
+	constexpr std::array buffer{ slip::constants::END };
+	int numberOfEndCalls{};
+	auto it = buffer.begin();
+	slip::Decode(it, buffer.end(), [](const auto v) {
+		ADD_FAILURE() << "called";
+	}, [&]() {
+		++numberOfEndCalls;
+	});
+	EXPECT_EQ(buffer.end(), it);
+	EXPECT_EQ(1, numberOfEndCalls);
+}
+
+TEST(SLIP, Decode_Escaped_Bytes)
+{
+	constexpr std::array data{
+		slip::constants::ESC,
+		slip::constants::ESC_END,
+		slip::constants::ESC,
+		slip::constants::ESC_ESC,
+	};
+	constexpr std::array expected{ slip::constants::END, slip::constants::ESC };
+	auto it = data.begin();
+	std::vector<std::byte> decodedBytes;
+	slip::Decode(it, data.end(), [&](const auto v) {
+		decodedBytes.push_back(v);
+	}, [&]() {
+		ADD_FAILURE() << "called";
+	});
+	EXPECT_EQ(data.end(), it);
+	ASSERT_EQ(decodedBytes.size(), expected.size());
+	EXPECT_TRUE(ranges::equal(decodedBytes, expected));
+}
+
+TEST(SLIP, Decode_Single_Escape_Does_Not_Advance_Iterator)
+{
+	constexpr std::array data{ slip::constants::ESC };
+	auto it = data.begin();
+	slip::Decode(it, data.end(), [&](const auto v) {
+		ADD_FAILURE() << "called";
+	}, [&]() {
+		ADD_FAILURE() << "called";
+	});
+	EXPECT_EQ(data.begin(), it);
+}
+
 }
 }
