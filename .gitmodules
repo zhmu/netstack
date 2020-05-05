@@ -1,0 +1,9 @@
+[submodule "external/googletest"]
+	path = external/googletest
+	url = https://github.com/google/googletest.git
+[submodule "external/span-lite"]
+	path = external/span-lite
+	url = https://github.com/martinmoene/span-lite.git
+[submodule "external/range-v3"]
+	path = external/range-v3
+	url = https://github.com/ericniebler/range-v3.git
