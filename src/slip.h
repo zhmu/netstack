@@ -36,8 +36,10 @@ namespace netstack::slip {
 		transmit(constants::END);
 	}
 
-	template<typename Iterator, typename OnByteFn, typename OnEndFn> void Decode(Iterator& it, Iterator end, OnByteFn&& onByte, OnEndFn&& onEnd)
+	template<typename Container, typename OnByteFn, typename OnEndFn> typename Container::const_iterator Decode(const Container& container, OnByteFn&& onByte, OnEndFn&& onEnd)
 	{
+		const auto end{container.end()};
+		auto it{container.begin()};
 		while(it != end) {
 			auto byte = *it;
 			switch (byte) {
@@ -47,7 +49,7 @@ namespace netstack::slip {
 					continue;
 				case constants::ESC: {
 					if (auto nextIt{it}; ++nextIt == end)
-						return;
+						return it;
 					++it;
 					byte = *it;
 					switch(byte) {
@@ -64,5 +66,6 @@ namespace netstack::slip {
 			onByte(byte);
 			++it;
 		}
+		return it;
 	}
 }
