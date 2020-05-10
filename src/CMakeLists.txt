@@ -1,3 +1,5 @@
-add_executable(netstack main.cpp)
+add_executable(netstack main.cpp drivers/slipdevice.cpp)
 target_compile_features(netstack PRIVATE cxx_std_17)
 target_link_libraries(netstack PRIVATE quill::quill)
+target_link_libraries(netstack PRIVATE range-v3)
+target_link_libraries(netstack PRIVATE fmt::fmt)
