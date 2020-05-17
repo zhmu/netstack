@@ -4,6 +4,7 @@
 #include "range/v3/view/iota.hpp"
 #include "range/v3/view/transform.hpp"
 
+#include "range/v3/iterator/insert_iterators.hpp"
 #include "range/v3/numeric/accumulate.hpp"
 
 #include "helpers.h"
@@ -83,6 +84,79 @@ TEST(Buffer, Chained_Buffers_Can_Be_Iterated)
 	EXPECT_EQ(&buffer1, buffers[0]);
 	EXPECT_EQ(&buffer2, buffers[1]);
 	EXPECT_EQ(&buffer3, buffers[2]);
+}
+
+TEST(Buffer, DataIterator_Single_Buffer_Empty)
+{
+	Buffer buffer;
+	EXPECT_EQ(0_sz, std::distance(buffer.data().begin(), buffer.data().end()));
+}
+
+TEST(Buffer, DataIterator_Single_Buffer_Length_Is_Correct)
+{
+	Buffer buffer;
+	auto write = buffer.WriteSpan();
+	ASSERT_GT(write.size(), testBytes.size());
+	Append(testBytes, buffer);
+
+	EXPECT_EQ(testBytes.size(), std::distance(buffer.data().begin(), buffer.data().end()));
+}
+
+TEST(Buffer, DataIterator_Single_Buffer_Data_Is_Correct)
+{
+	Buffer buffer;
+	auto write = buffer.WriteSpan();
+	ASSERT_GT(write.size(), testBytes.size());
+	Append(testBytes, buffer);
+
+	ASSERT_TRUE(ranges::equal(testBytes, buffer.data()));
+}
+
+TEST(Buffer, DataIterator_Multiple_Buffers_Data_Is_Correct)
+{
+	Buffer buffer1;
+	const auto data1 = ranges::views::ints(0, static_cast<int>(Buffer::Size))
+					| ranges::views::transform([] (int i) { return std::byte{static_cast<unsigned char>(i)}; });
+	Append(data1, buffer1);
+	const auto data2 = ranges::views::ints(0, static_cast<int>(Buffer::Size))
+					| ranges::views::transform([] (int i) { return std::byte{static_cast<unsigned char>(0xff - i)}; });
+	auto& buffer2 = buffer1.AddBuffer();
+	Append(data2, buffer2);
+
+	auto all_data = data1 | ranges::to<std::vector>();
+	ranges::copy(data2, ranges::back_inserter(all_data));
+	EXPECT_EQ(all_data.size(), std::distance(buffer1.data().begin(), buffer1.data().end()));
+	ASSERT_TRUE(ranges::equal(all_data, buffer1.data()));
+}
+
+TEST(Buffer, DataIterator_Multiple_Buffer_Empty)
+{
+	Buffer buffer1;
+	auto& buffer2 = buffer1.AddBuffer();
+
+	EXPECT_EQ(0_sz, std::distance(buffer1.data().begin(), buffer1.data().end()));
+}
+
+TEST(Buffer, DataIterator_Multiple_Buffer_First_Empty)
+{
+	Buffer buffer1;
+	auto& buffer2 = buffer1.AddBuffer();
+	Append(testBytes, buffer2);
+	ASSERT_TRUE(ranges::equal(testBytes, buffer1.data()));
+}
+
+TEST(Buffer, DataIterator_Multiple_Buffer_Middle_Empty)
+{
+	Buffer buffer1;
+	auto& buffer2 = buffer1.AddBuffer();
+	auto& buffer3 = buffer2.AddBuffer();
+	auto& buffer4 = buffer3.AddBuffer();
+	Append(testBytes, buffer1);
+	Append(testBytes, buffer4);
+
+	auto all_data = testBytes | ranges::to<std::vector>();
+	ranges::copy(testBytes, ranges::back_inserter(all_data));
+	ASSERT_TRUE(ranges::equal(all_data, buffer1.data()));
 }
 
 }

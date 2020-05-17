@@ -31,6 +31,44 @@ namespace netstack {
 		T* buffer{};
 	 };
 
+	 struct BufferDataIterator
+	 {
+		using iterator_category = std::forward_iterator_tag;
+		using value_type = const std::byte;
+		using difference_type = std::ptrdiff_t;
+		using pointer = value_type*;
+		using reference = value_type&;
+
+		BufferDataIterator() = default;
+		BufferDataIterator(const Buffer* buffer);
+
+		BufferDataIterator& operator++();
+		BufferDataIterator operator++(int);
+		value_type operator*() const;
+
+		friend bool operator==(const BufferDataIterator& a, const BufferDataIterator& b);
+		friend bool operator!=(const BufferDataIterator& a, const BufferDataIterator& b) { return !(a == b); }
+
+	 private:
+		 const Buffer* buffer{};
+		 nonstd::span<value_type> span;
+		 nonstd::span<value_type>::iterator it;
+	 };
+
+	 struct BufferData {
+	 	using value_type = BufferData;
+		using iterator = BufferDataIterator;
+		using const_iterator = iterator;
+
+		 BufferData(const Buffer& buffer) : buffer(buffer) { }
+
+		 iterator begin();
+		 iterator end();
+
+	 private:
+		 const Buffer& buffer;
+	 };
+
 	 class Buffer final
 	 {
 	 public:
@@ -39,8 +77,8 @@ namespace netstack {
 		using const_iterator = BuffersIterator<const Buffer>;
 		constexpr static inline size_t Size = 1024;
 
-		 nonstd::span<const std::byte> ReadSpan() const { return {&data[0], filled}; }
-		 nonstd::span<std::byte> WriteSpan() { return {&data[filled], data.size() - filled}; }
+		 nonstd::span<const std::byte> ReadSpan() const { return {&dataBuffer[0], filled}; }
+		 nonstd::span<std::byte> WriteSpan() { return {&dataBuffer[filled], dataBuffer.size() - filled}; }
 
 		 void IncrementFilled(const size_t amount) { filled += amount; }
 
@@ -50,6 +88,8 @@ namespace netstack {
 		 const_iterator end() const { return const_iterator{}; }
 		 Buffer* next() const { return nextBuffer.get(); }
 
+		 BufferData data() const { return BufferData{*this}; }
+
 		 Buffer& AddBuffer() {
 			 nextBuffer = std::make_unique<Buffer>();
 			 return *nextBuffer;
@@ -57,7 +97,7 @@ namespace netstack {
 
 	 private:
 		 BufferPtr nextBuffer;
-		 std::array<std::byte, Size> data;
+		 std::array<std::byte, Size> dataBuffer;
 		 size_t filled{};
 	};
 
@@ -70,5 +110,57 @@ namespace netstack {
 		BuffersIterator copy{*this};
 		operator++();
 		return copy;
+	}
+
+	inline BufferData::iterator BufferData::begin()
+	{
+		auto b = &buffer;
+		while (b != nullptr && b->ReadSpan().empty())
+			b = b->next();
+		return iterator{ b };
+	}
+
+	inline BufferData::iterator BufferData::end()
+	{
+		return iterator{ nullptr };
+	}
+
+	inline BufferDataIterator::BufferDataIterator(const Buffer* buffer)
+		: buffer(buffer)
+	{
+		if (buffer != nullptr)
+			span = buffer->ReadSpan();
+		it = span.begin();
+	}
+
+	inline BufferDataIterator& BufferDataIterator::operator++()
+	{
+		++it;
+		while (buffer != nullptr && it == span.end()) {
+			buffer = buffer->next();
+			if (buffer != nullptr)
+				span = buffer->ReadSpan();
+			else
+				span = {};
+			it = span.begin();
+		}
+		return *this;
+	}
+
+	inline BufferDataIterator BufferDataIterator::operator++(int)
+	{
+		auto copy{*this};
+		operator++();
+		return copy;
+	}
+
+	inline BufferDataIterator::value_type BufferDataIterator::operator*() const
+	{
+		return *it;
+	}
+
+	inline bool operator==(const BufferDataIterator& a, const BufferDataIterator& b)
+	{
+		return a.buffer == b.buffer && a.it == b.it;
 	}
 }
