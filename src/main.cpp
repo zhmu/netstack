@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 		{
 			//if (buffer->ReadSpan().empty()) return;
 			printf("ohai got buffer!\n");
-			for(const auto buf: *buffer) {
+			for(const auto buf: buffer->chain()) {
 				netstack::dump_buffer::Dump(buf->ReadSpan(), [](const size_t offset, auto bytes, auto chars) {
 					fmt::print("{:4x}: {:48s} {}\n", offset, bytes, chars);
 				});

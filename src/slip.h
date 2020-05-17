@@ -14,7 +14,7 @@ namespace netstack::slip {
 	template<typename TransmitFn> void Transmit(Buffer& buffer, TransmitFn&& transmit)
 	{
 		transmit(constants::END);
-		ranges::for_each(buffer, [&](const auto buffer)
+		ranges::for_each(buffer.chain(), [&](const auto buffer)
 		{
 			ranges::for_each(buffer->ReadSpan(), [&](const auto byte)
 			{

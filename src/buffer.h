@@ -10,7 +10,7 @@ namespace netstack {
 	 using BufferPtr = std::unique_ptr<Buffer>;
 
 	 template<typename T>
-	 struct BuffersIterator
+	 struct BufferChainIterator
 	 {
 		using iterator_category = std::forward_iterator_tag;
 		using value_type = T*;
@@ -18,16 +18,17 @@ namespace netstack {
 		using pointer = T**;
 		using reference = T&;
 
-		BuffersIterator() = default;
-		BuffersIterator(T& buffer) : buffer(&buffer) { }
+		BufferChainIterator() = default;
+		BufferChainIterator(T& buffer) : buffer(&buffer) { }
 
-		BuffersIterator& operator++();
-		BuffersIterator operator++(int);
+		BufferChainIterator& operator++();
+		BufferChainIterator operator++(int);
 		value_type operator*() const { return buffer; }
 
-		friend bool operator==(const BuffersIterator& a, const BuffersIterator& b) { return a.buffer == b.buffer; }
-		friend bool operator!=(const BuffersIterator& a, const BuffersIterator& b) { return !(a == b); }
+		friend bool operator==(const BufferChainIterator& a, const BufferChainIterator& b) { return a.buffer == b.buffer; }
+		friend bool operator!=(const BufferChainIterator& a, const BufferChainIterator& b) { return !(a == b); }
 
+	 private:
 		T* buffer{};
 	 };
 
@@ -56,7 +57,6 @@ namespace netstack {
 	 };
 
 	 struct BufferData {
-	 	using value_type = BufferData;
 		using iterator = BufferDataIterator;
 		using const_iterator = iterator;
 
@@ -69,12 +69,25 @@ namespace netstack {
 		 const Buffer& buffer;
 	 };
 
+	 template<typename T>
+	 struct BufferChain {
+		using iterator = BufferChainIterator<T>;
+		using const_iterator = BufferChainIterator<const T>;
+
+		BufferChain(T& buffer) : buffer(buffer) { }
+
+		iterator begin() { return iterator{buffer}; }
+		iterator end() { return iterator{}; }
+		const_iterator begin() const { return const_iterator{buffer}; }
+		const_iterator end() const { return const_iterator{}; }
+
+	 private:
+	     T& buffer;
+	 };
+
 	 class Buffer final
 	 {
 	 public:
-	 	using value_type = Buffer;
-		using iterator = BuffersIterator<Buffer>;
-		using const_iterator = BuffersIterator<const Buffer>;
 		constexpr static inline size_t Size = 1024;
 
 		 nonstd::span<const std::byte> ReadSpan() const { return {&dataBuffer[0], filled}; }
@@ -82,12 +95,10 @@ namespace netstack {
 
 		 void IncrementFilled(const size_t amount) { filled += amount; }
 
-		 iterator begin() { return iterator{*this}; }
-		 iterator end() { return iterator{}; }
-		 const_iterator begin() const { return const_iterator{*this}; }
-		 const_iterator end() const { return const_iterator{}; }
 		 Buffer* next() const { return nextBuffer.get(); }
 
+		 BufferChain<Buffer> chain() { return BufferChain{*this}; }
+		 BufferChain<const Buffer> chain() const { return BufferChain{*this}; }
 		 BufferData data() const { return BufferData{*this}; }
 
 		 Buffer& AddBuffer() {
@@ -101,13 +112,13 @@ namespace netstack {
 		 size_t filled{};
 	};
 
-	template<typename T> BuffersIterator<T>& BuffersIterator<T>::operator++() {
+	template<typename T> BufferChainIterator<T>& BufferChainIterator<T>::operator++() {
 		buffer = buffer->next();
 		return *this;
 	}
 
-	template<typename T> BuffersIterator<T> BuffersIterator<T>::operator++(int) {
-		BuffersIterator copy{*this};
+	template<typename T> BufferChainIterator<T> BufferChainIterator<T>::operator++(int) {
+		BufferChainIterator copy{*this};
 		operator++();
 		return copy;
 	}

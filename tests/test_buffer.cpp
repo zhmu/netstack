@@ -55,11 +55,11 @@ TEST(Buffer, Entire_Buffer_Can_Be_Used)
 	EXPECT_TRUE(buffer.WriteSpan().empty());
 }
 
-TEST(Buffer, Iterate_Over_Single_Buffer)
+TEST(Buffer, Chain_Iterate_Over_Single_Buffer)
 {
 	Buffer buffer;
-	EXPECT_EQ(1_sz, std::distance(buffer.begin(), buffer.end()));
-	for(const auto b: buffer) {
+	EXPECT_EQ(1_sz, std::distance(buffer.chain().begin(), buffer.chain().end()));
+	for(const auto b: buffer.chain()) {
 		EXPECT_EQ(b, &buffer);
 	}
 }
@@ -79,7 +79,11 @@ TEST(Buffer, Chained_Buffers_Can_Be_Iterated)
 	auto& buffer2 = buffer1.AddBuffer();
 	auto& buffer3 = buffer2.AddBuffer();
 
-	const auto buffers = ranges::views::all(buffer1) | ranges::to<std::vector>();
+	//const auto buffers = ranges::views::all(buffer1.chain()) | ranges::to<std::vector>();
+	std::vector<Buffer*> buffers;
+	for(auto b: buffer1.chain()) {
+		buffers.push_back(b);
+	}
 	ASSERT_EQ(3_sz, buffers.size());
 	EXPECT_EQ(&buffer1, buffers[0]);
 	EXPECT_EQ(&buffer2, buffers[1]);
