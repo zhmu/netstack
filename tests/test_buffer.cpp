@@ -79,11 +79,7 @@ TEST(Buffer, Chained_Buffers_Can_Be_Iterated)
 	auto& buffer2 = buffer1.AddBuffer();
 	auto& buffer3 = buffer2.AddBuffer();
 
-	//const auto buffers = ranges::views::all(buffer1.chain()) | ranges::to<std::vector>();
-	std::vector<Buffer*> buffers;
-	for(auto b: buffer1.chain()) {
-		buffers.push_back(b);
-	}
+	const auto buffers = ranges::views::all(buffer1.chain()) | ranges::to<std::vector>();
 	ASSERT_EQ(3_sz, buffers.size());
 	EXPECT_EQ(&buffer1, buffers[0]);
 	EXPECT_EQ(&buffer2, buffers[1]);
@@ -93,6 +89,7 @@ TEST(Buffer, Chained_Buffers_Can_Be_Iterated)
 TEST(Buffer, DataIterator_Single_Buffer_Empty)
 {
 	Buffer buffer;
+	EXPECT_EQ(0_sz, buffer.data().size());
 	EXPECT_EQ(0_sz, std::distance(buffer.data().begin(), buffer.data().end()));
 }
 
@@ -103,6 +100,7 @@ TEST(Buffer, DataIterator_Single_Buffer_Length_Is_Correct)
 	ASSERT_GT(write.size(), testBytes.size());
 	Append(testBytes, buffer);
 
+	EXPECT_EQ(testBytes.size(), buffer.data().size());
 	EXPECT_EQ(testBytes.size(), std::distance(buffer.data().begin(), buffer.data().end()));
 }
 
@@ -129,6 +127,7 @@ TEST(Buffer, DataIterator_Multiple_Buffers_Data_Is_Correct)
 
 	auto all_data = data1 | ranges::to<std::vector>();
 	ranges::copy(data2, ranges::back_inserter(all_data));
+	EXPECT_EQ(all_data.size(), buffer1.data().size());
 	EXPECT_EQ(all_data.size(), std::distance(buffer1.data().begin(), buffer1.data().end()));
 	ASSERT_TRUE(ranges::equal(all_data, buffer1.data()));
 }
@@ -138,6 +137,7 @@ TEST(Buffer, DataIterator_Multiple_Buffer_Empty)
 	Buffer buffer1;
 	auto& buffer2 = buffer1.AddBuffer();
 
+	EXPECT_EQ(0_sz, buffer1.data().size());
 	EXPECT_EQ(0_sz, std::distance(buffer1.data().begin(), buffer1.data().end()));
 }
 
@@ -146,6 +146,8 @@ TEST(Buffer, DataIterator_Multiple_Buffer_First_Empty)
 	Buffer buffer1;
 	auto& buffer2 = buffer1.AddBuffer();
 	Append(testBytes, buffer2);
+
+	EXPECT_EQ(testBytes.size(), buffer1.data().size());
 	ASSERT_TRUE(ranges::equal(testBytes, buffer1.data()));
 }
 
@@ -160,6 +162,7 @@ TEST(Buffer, DataIterator_Multiple_Buffer_Middle_Empty)
 
 	auto all_data = testBytes | ranges::to<std::vector>();
 	ranges::copy(testBytes, ranges::back_inserter(all_data));
+	EXPECT_EQ(all_data.size(), buffer1.data().size());
 	ASSERT_TRUE(ranges::equal(all_data, buffer1.data()));
 }
 

@@ -5,6 +5,9 @@
 #include <memory>
 #include "nonstd/span.hpp"
 
+#include "range/v3/numeric/accumulate.hpp"
+#include "range/v3/view/transform.hpp"
+
 namespace netstack {
 	 class Buffer;
 	 using BufferPtr = std::unique_ptr<Buffer>;
@@ -64,6 +67,7 @@ namespace netstack {
 
 		 iterator begin();
 		 iterator end();
+		 size_t size() const;
 
 	 private:
 		 const Buffer& buffer;
@@ -84,7 +88,12 @@ namespace netstack {
 	 private:
 	     T& buffer;
 	 };
+}
 
+// p2017r1 renames this to borrowed_range; update once C++20 is a thing
+template<typename T> inline constexpr bool ranges::enable_safe_range<netstack::BufferChain<T>> = true;
+
+namespace netstack {
 	 class Buffer final
 	 {
 	 public:
@@ -134,6 +143,11 @@ namespace netstack {
 	inline BufferData::iterator BufferData::end()
 	{
 		return iterator{ nullptr };
+	}
+
+	inline size_t BufferData::size() const
+	{
+		return ranges::accumulate(buffer.chain() | ranges::views::transform([] (auto b) { return b->ReadSpan().size(); }), size_t(0));
 	}
 
 	inline BufferDataIterator::BufferDataIterator(const Buffer* buffer)
