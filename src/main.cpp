@@ -2,6 +2,7 @@
 #include "buffer.h"
 #include "dump.h"
 #include "drivers/slipdevice.h"
+#include "protocols/ip.h"
 #include "fmt/core.h"
 
 #include "range/v3/view/transform.hpp"
@@ -33,11 +34,10 @@ int main(int argc, char* argv[])
 		{
 			//if (buffer->ReadSpan().empty()) return;
 			printf("ohai got buffer!\n");
-			for(const auto buf: buffer->chain()) {
-				netstack::dump_buffer::Dump(buf->ReadSpan(), [](const size_t offset, auto bytes, auto chars) {
-					fmt::print("{:4x}: {:48s} {}\n", offset, bytes, chars);
-				});
-			}
+			netstack::dump_buffer::Dump(buffer->data(), [](const size_t offset, auto bytes, auto chars) {
+				fmt::print("{:4x}: {:48s} {}\n", offset, bytes, chars);
+			});
+			auto result = netstack::protocol::ip::ParseHeader(*buffer);
 		});
 		printf("read done\n");
 	}
