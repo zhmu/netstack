@@ -41,7 +41,6 @@ struct Header {
 };
 
 enum class Result {
-	OK,
 	Unsupported,
 	NotEnoughData,
 	InvalidVersion,
