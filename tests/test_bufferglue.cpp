@@ -103,5 +103,24 @@ TEST(BufferGlue, Filling_Some_Bytes_With_Flush_And_Then_Some_Does_Not_Process_Th
 	EXPECT_EQ(1, numberOfEndCalls);
 }
 
+TEST(BufferGlue, Empty_Buffers_Are_Never_Complete)
+{
+	BufferGlue glue;
+	const std::vector<std::byte> testFlushBytes{ 10, constants::FLUSH };
+	{
+		auto writeSpan = glue.GetWriteSpan();
+		ranges::copy(testFlushBytes, writeSpan.begin());
+	}
+
+	const auto bufferSize = glue.GetWriteSpan().size();
+	int numberOfEndCalls{};
+	glue.HandleDataReceived(testFlushBytes.size(), [](auto span, auto&& onByte, auto&& onComplete) { return Process(span, onByte, onComplete); }, [&](auto buffer)
+	{
+		++numberOfEndCalls;
+	});
+	EXPECT_EQ(bufferSize, glue.GetWriteSpan().size());
+	EXPECT_EQ(0, numberOfEndCalls);
+}
+
 }
 }

@@ -34,7 +34,8 @@ public:
 			writeSpan.front() = b;
 			fillingBuffer->IncrementFilled(1);
 		}, [&]() {
-			callback(std::move(currentBuffer));
+			if (currentBuffer)
+				callback(std::move(currentBuffer));
 			fillingBuffer = nullptr;
 		});
 
