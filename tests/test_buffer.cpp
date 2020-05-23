@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "buffer.h"
 #include "range/v3/range/conversion.hpp"
+#include "range/v3/view/drop.hpp"
 #include "range/v3/view/iota.hpp"
 #include "range/v3/view/transform.hpp"
 
@@ -164,6 +165,21 @@ TEST(Buffer, DataIterator_Multiple_Buffer_Middle_Empty)
 	ranges::copy(testBytes, ranges::back_inserter(all_data));
 	EXPECT_EQ(all_data.size(), buffer1.data().size());
 	ASSERT_TRUE(ranges::equal(all_data, buffer1.data()));
+}
+
+TEST(Buffer, DataIterator_Can_Be_Incremented)
+{
+	Buffer buffer1;
+	auto& buffer2 = buffer1.AddBuffer();
+	Append(testBytes, buffer2);
+
+	constexpr size_t offset = testBytes.size() / 2;
+	const auto data = testBytes | ranges::views::drop(offset) | ranges::to<std::vector>();
+
+	std::vector<std::byte> current;
+	std::copy(buffer1.data().begin() + offset, buffer1.data().end(), std::back_inserter(current));
+	EXPECT_EQ(data.size(), current.size());
+	ASSERT_TRUE(ranges::equal(data, current));
 }
 
 }

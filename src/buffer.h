@@ -48,6 +48,7 @@ namespace netstack {
 
 		BufferDataIterator& operator++();
 		BufferDataIterator operator++(int);
+		BufferDataIterator operator+(size_t amount);
 		value_type operator*() const;
 
 		friend bool operator==(const BufferDataIterator& a, const BufferDataIterator& b);
@@ -176,6 +177,14 @@ namespace netstack {
 	{
 		auto copy{*this};
 		operator++();
+		return copy;
+	}
+
+	inline BufferDataIterator BufferDataIterator::operator+(size_t amount)
+	{
+		auto copy{*this};
+		for (; amount > 0; --amount)
+			copy.operator++();
 		return copy;
 	}
 
