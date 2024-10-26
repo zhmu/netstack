@@ -52,5 +52,19 @@ TEST(ICMP, Valid_ICMP_Echo_Request_Packet)
 	EXPECT_EQ(0, icmpHeader.code);
 }
 
+TEST(ICMP, Create_Response_Based_On_ICMP_Echo_Request)
+{
+    Buffer request;
+    Append(icmpEchoRequest, request);
+
+	const auto ipResult = protocol::ip::ParseHeader(request);
+	const auto& ipHeader = std::get<protocol::ip::Header>(ipResult);
+	const auto icmpResult = protocol::icmp::Parse(ipHeader, request);
+	const auto& icmpHeader = std::get<protocol::icmp::Header>(icmpResult);
+
+	auto response = protocol::icmp::CreateEchoResponse(ipHeader, icmpHeader, request);
+	const auto responseData = response.ReadSpan();
+}
+
 }
 }

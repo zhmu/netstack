@@ -153,5 +153,25 @@ TEST(IP, Options_Length_Is_Correctly_Checked)
 	EXPECT_EQ(protocol::ip::Result::NotEnoughData, std::get<protocol::ip::Result>(result));
 }
 
+TEST(IP, ConstructHeader)
+{
+	const protocol::ip::Header header{
+		.tos = 0,
+		.totalLength = 0,
+		.id = 12345,
+		.flags = 0,
+		.frag = 0,
+		.ttl = 64,
+		.protocol = protocol::ip::constants::protocol::ICMP,
+		.checksum = 0,
+		.sourceAddr = 0xac100001,
+		.destAddr = 0xac100002,
+		.headerSize = 20
+	};
+	Buffer buffer;
+	protocol::ip::ConstructHeader(header, buffer);
+	EXPECT_EQ(20, buffer.ReadSpan().size());
+}
+
 }
 }

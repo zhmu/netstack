@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <variant>
 #include <cstdint>
 
@@ -34,7 +35,10 @@ enum class Result {
 	ChecksumError
 };
 
+Buffer CreateEchoResponse(const ip::Header& ipHeader, const Header& icmpHeader, Buffer& buffer);
+
 std::variant<Result, Header> Parse(const ip::Header&, Buffer&);
+std::optional<Buffer> Process(const ip::Header& ipHeader, const Header& icmpHeader, Buffer& buffer);
 
 }
 }

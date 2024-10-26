@@ -60,6 +60,36 @@ std::variant<Result, Header> ParseHeader(Buffer& buffer)
 	return header;
 }
 
+void ConstructHeader(const Header& source, Buffer& buffer)
+{
+	{
+		net_order::Producer producer(buffer.WriteSpan().begin());
+		producer << static_cast<uint8_t>(0x40 + (source.headerSize / 4) & 0xf);
+		producer << static_cast<uint8_t>(source.tos); // tos
+		producer << static_cast<uint16_t>(source.totalLength);
+		producer << static_cast<uint16_t>(source.id);
+		uint16_t flag_frag = source.flags | source.frag;
+		producer << static_cast<uint16_t>(flag_frag); // flags/frag offset
+		producer << static_cast<uint8_t>(source.ttl); // ttl
+		producer << static_cast<uint8_t>(source.protocol);
+		buffer.IncrementFilled(producer.bytesProduced);
+	}
+	auto checksum_it = buffer.WriteSpan();
+	{
+		net_order::Producer producer(buffer.WriteSpan().begin());
+		producer << static_cast<uint16_t>(0); // checksum
+		producer << static_cast<uint32_t>(source.sourceAddr);
+		producer << static_cast<uint32_t>(source.destAddr);
+		buffer.IncrementFilled(producer.bytesProduced);
+	}
+
+	{
+		const auto checksum = CalculateHeaderChecksum(buffer, source.headerSize);
+		net_order::Producer producer(checksum_it.begin());
+		producer << checksum;
+	}
+}
+
 }
 }
 }

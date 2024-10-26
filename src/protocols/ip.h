@@ -49,6 +49,7 @@ enum class Result {
 };
 
 std::variant<Result, Header> ParseHeader(Buffer& buffer);
+void ConstructHeader(const Header& source, Buffer& buffer);
 
 }
 }

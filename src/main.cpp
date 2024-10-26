@@ -32,8 +32,6 @@ int main(int argc, char* argv[])
 		printf("read start\n");
 		auto result = slip.Read([](std::unique_ptr<netstack::Buffer> buffer)
 		{
-			//if (buffer->ReadSpan().empty()) return;
-			printf("ohai got buffer!\n");
 			netstack::dump_buffer::Dump(buffer->data(), [](const size_t offset, auto bytes, auto chars) {
 				fmt::print("{:4x}: {:48s} {}\n", offset, bytes, chars);
 			});

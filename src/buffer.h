@@ -111,6 +111,7 @@ namespace netstack {
 		 BufferChain<const Buffer> chain() const { return BufferChain{*this}; }
 		 BufferData data() const { return BufferData{*this}; }
 
+
 		 Buffer& AddBuffer() {
 			 nextBuffer = std::make_unique<Buffer>();
 			 return *nextBuffer;
